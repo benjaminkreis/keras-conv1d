@@ -31,6 +31,6 @@ source setup.sh
 ## Run
 ```
 cd train
-python keras-conv1d.py
+python keras_conv1d.py
 ```
 
