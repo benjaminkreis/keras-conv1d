@@ -23,6 +23,11 @@ if __name__ == "__main__":
         #raise Exception('output directory must not exists yet')
     else:
         os.mkdir(options.outputDir)
+
+
+    #############
+    ## Get Data
+    #############
         
     # Get y data
     n_cat = 6
@@ -48,9 +53,12 @@ if __name__ == "__main__":
 
     print "x shape: {}".format(x_train.shape)
     print "y shape: {}".format(y_train.shape)
-    
 
-    # Network architecture (Conv1d + Dense)
+    
+    ###################
+    ## Set up network
+    ###################
+
     seed(123421412)
     model = Sequential()
     
@@ -58,12 +66,16 @@ if __name__ == "__main__":
     my_kernel_size = 2
     model.add(Conv1D(my_filters, my_kernel_size, input_shape = x_train.shape[1:3], padding='same', activation = 'relu', kernel_initializer='glorot_uniform'))
     model.add(Flatten())
-    model.add(Dense(32, activation = 'relu', kernel_initializer='lecun_uniform'))
+    #model.add(Dense(32, activation = 'relu', kernel_initializer='lecun_uniform'))
     model.add(Dense(n_cat, activation = 'softmax', kernel_initializer='lecun_uniform'))
 
     print model.summary()
 
-    # Fitting 
+
+    ###########
+    ## Train
+    ###########
+
     startlearningrate=0.001
     adam = Adam(lr=startlearningrate)
     model.compile(loss = 'categorical_crossentropy', optimizer = adam, metrics = ['accuracy'])
@@ -77,8 +89,19 @@ if __name__ == "__main__":
                             outputDir=options.outputDir)
     model.fit(x_train, y_train, batch_size = 128, epochs = 100, validation_split = 0.25, verbose = 0, callbacks = callbacks.callbacks)
 
-    # Predictions
-    #print "Example prediction ", model.predict(x_train[0:100])
-    print(np.c_[y_train[99:100], model.predict(x_train[99:100])])
 
-    print(model.evaluate(x_train, y_train, batch_size=128))
+    ###############
+    ## Evaluate
+    ###############
+
+    # Just using training data for now
+
+    print "Metrics: ", model.metrics_names
+    print "Evaluate: ", model.evaluate(x_train, y_train, batch_size=128)
+
+    # Predictions
+    for i in range(0,10):
+        print(y_train[i])
+        print(model.predict(x_train[i:i+1]))
+        print "\n"
+        
