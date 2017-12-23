@@ -71,10 +71,10 @@ if __name__ == "__main__":
     
     my_filters=32
     my_kernel_size = 10
-    model.add(Conv1D(my_filters, my_kernel_size, input_shape = x_train.shape[1:3], padding='same', activation = 'relu', kernel_initializer='glorot_uniform'))
+    model.add(Conv1D(my_filters, my_kernel_size, input_shape = x_train.shape[1:3], padding='same', activation = 'linear', kernel_initializer='glorot_uniform'))
     model.add(Flatten())
     #model.add(Dense(32, activation = 'relu', kernel_initializer='lecun_uniform'))
-    model.add(Dense(y_train.shape[1], activation = 'softmax', kernel_initializer='lecun_uniform'))
+    model.add(Dense(y_train.shape[1], activation = 'linear', kernel_initializer='lecun_uniform'))
 
     print model.summary()
 

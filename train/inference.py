@@ -139,8 +139,13 @@ in_width = x_sample.shape[0]
 ## Convolve 
 ##############
 
+print "conv_k shape: ",conv_k.shape
+
+conv_out = np.zeros((out_width,n_filters))
+
 for i in range(0,out_width):
     for f in range(0,n_filters): 
+        channel_sum = 0
         for c in range(0,n_channels):
             
             #Select data
@@ -148,7 +153,31 @@ for i in range(0,out_width):
             x_buffer = x_buffer[i*stride:i*stride+filter_width]
 
             #Select filter
+            my_filter = conv_k[:,c,f]
+            
+            if i==0 and f==0 and c==0:
+                print "buffer shape: ",x_buffer.shape
+                print "filter shape: ",my_filter.shape
+                
+            my_dot = np.dot(x_buffer,my_filter)
+            channel_sum += my_dot
+        conv_out[i,f] = channel_sum + conv_b[f]
 
-        #Sum over channels
-        #Enter output for output position i and filter f
 
+#for j in range(0,conv_out.shape[1]):
+#    for i in range(0,conv_out.shape[0]):
+#        print conv_out[i,j]
+#    print "\n"
+
+
+conv_out = conv_out.flatten()
+print "conv_out shape: ",conv_out.shape
+
+
+##########
+## Dense
+##########
+dnn_out = np.dot(conv_out, dense_k)+dense_b
+
+
+print "Final output: ",dnn_out
