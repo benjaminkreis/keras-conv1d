@@ -164,6 +164,9 @@ for i in range(0,out_width):
         conv_out[i,f] = channel_sum + conv_b[f]
 
 
+#relu
+conv_out = conv_out * (conv_out > 0)
+
 #for j in range(0,conv_out.shape[1]):
 #    for i in range(0,conv_out.shape[0]):
 #        print conv_out[i,j]
@@ -179,5 +182,9 @@ print "conv_out shape: ",conv_out.shape
 ##########
 dnn_out = np.dot(conv_out, dense_k)+dense_b
 
+#softmax
+dnn_out = np.exp(dnn_out) / sum(np.exp(dnn_out))
 
 print "Final output: ",dnn_out
+
+
