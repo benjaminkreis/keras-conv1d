@@ -15,6 +15,53 @@ from keras.utils import to_categorical
 from callbacks import all_callbacks
 from keras_conv1d import get_data
 
+
+#######################################
+## Print a bias or weight array to C++
+#######################################
+def print_array_to_cpp(name, a, odir ):
+
+    #put output in subdir for tarballing later
+    f=open("{}/{}.h".format(odir,name),"w")
+
+    #meta data
+    f.write("//Numpy array shape {}\n".format(a.shape))
+    f.write("//Min {}\n".format(np.min(a)))
+    f.write("//Max {}\n".format(np.max(a)))
+    f.write("\n")
+    
+    #c++ variable 
+    if "w" in name: 
+        f.write("weight_default_t {}".format(name))
+    elif "b" in name: 
+        f.write("bias_default_t {}".format(name))
+    else:
+        raise Exception('ERROR: Unkown weights type')
+
+
+    for x in a.shape:
+        f.write("[{}]".format(x))
+    f.write(" = {")
+    
+    #fill c++ array.  
+    #not including internal brackets for multidimensional case
+    i=0;
+    zero_ctr = 0;
+    for x in np.nditer(a, order='C'):
+        if x == 0: 
+            zero_ctr += 1
+        if i==0:
+            f.write("{}".format(x))
+        else:
+            f.write(", {}".format(x))
+        i=i+1
+    f.write("};")
+    f.close()
+
+    return zero_ctr;
+
+
+
 # The following two functions from
 # https://confluence.slac.stanford.edu/display/PSDM/How+to+access+HDF5+data+from+Python
 
@@ -72,6 +119,12 @@ conv_b = h5File['/conv1d_1/conv1d_1/bias:0'][()]
 dense_k = h5File['/dense_1/dense_1/kernel:0'][()]
 dense_b = h5File['/dense_1/dense_1/bias:0'][()]
 
+print_array_to_cpp("w1",conv_k,"weights")
+print_array_to_cpp("b1",conv_b,"weights")
+
+print_array_to_cpp("w2",dense_k,"weights")
+print_array_to_cpp("b2",dense_b,"weights")
+
 x_train, y_train = get_data()
 
 
@@ -84,42 +137,46 @@ x_train, y_train = get_data()
 
 ## Settings
 padding = 'same' #same or valid
-stride = 1
-filter_width = 10
-n_filters = 32
-n_channels = 9
+stride = 3
+filter_width = 2
+n_filters = 2
+n_channels = 2
 
 
 ### Get a sample
 x_sample = x_train[0,:,:]
 y_sample = y_train[0,:]
 
+
 print "x sample shape: ",x_sample.shape
 print "y sample shape: ",y_sample.shape
 print "x sample: ",x_sample
 print "y sample: ",y_sample
 
+print_array_to_cpp("w_x",x_sample,".")
+print_array_to_cpp("w_y",y_sample,".")
 
 ### Padding
 ### Equations from tensorflow documentation
 
 # Valid
-#out_width  = ceil(float(in_width - filter_width + 1) / float(stride))
-#pad_left = 0
-#pad_right = 0
+in_width = x_sample.shape[0]
+out_width  = int(math.ceil(float(in_width - filter_width + 1) / float(stride)))
+pad_left = 0
+pad_right = 0
 
 # Same
-in_width = x_sample.shape[0]
-out_width  = int(math.ceil(float(in_width) / float(stride)))
-if (in_width % stride == 0):
-    pad_along_width = max(filter_width - stride, 0)
-else:
-    pad_along_width = max(filter_width - (in_width % stride), 0)
-pad_left = pad_along_width // 2
-pad_right = pad_along_width - pad_left
+#in_width = x_sample.shape[0]
+#out_width  = int(math.ceil(float(in_width) / float(stride)))
+#if (in_width % stride == 0):
+#    pad_along_width = max(filter_width - stride, 0)
+#else:
+#    pad_along_width = max(filter_width - (in_width % stride), 0)
+#pad_left = pad_along_width // 2
+#pad_right = pad_along_width - pad_left
 print "in_width: ",in_width
 print "out_width: ",out_width
-print "pad_along_width: ",pad_along_width
+#print "pad_along_width: ",pad_along_width
 print "pad_left: ",pad_left
 print "pad_right: ", pad_right
 x_sample = np.pad(x_sample, [(pad_left,pad_right),(0,0)], 'constant')
@@ -163,24 +220,31 @@ for i in range(0,out_width):
             channel_sum += my_dot
         conv_out[i,f] = channel_sum + conv_b[f]
 
-
-#relu
-conv_out = conv_out * (conv_out > 0)
+print "conv_out: ",conv_out
+print_array_to_cpp("w_conv_out",conv_out,".")
 
 #for j in range(0,conv_out.shape[1]):
 #    for i in range(0,conv_out.shape[0]):
 #        print conv_out[i,j]
 #    print "\n"
 
-
+print "conv_out shape, pre-flatten: ",conv_out.shape
+print "conv_out, pre-flatten: ",conv_out
 conv_out = conv_out.flatten()
 print "conv_out shape: ",conv_out.shape
+print "conv_out: ",conv_out
 
+
+#relu
+conv_out = conv_out * (conv_out > 0)
+print "conv_out, post relu: ",conv_out
 
 ##########
 ## Dense
 ##########
 dnn_out = np.dot(conv_out, dense_k)+dense_b
+
+print "dnn_out: ",dnn_out
 
 #softmax
 dnn_out = np.exp(dnn_out) / sum(np.exp(dnn_out))
