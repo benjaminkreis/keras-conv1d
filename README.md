@@ -32,5 +32,6 @@ source setup.sh
 ```
 cd train
 python keras_conv1d.py
+python inference.py
 ```
 
