@@ -9,7 +9,7 @@ from pandas import read_csv, DataFrame
 from sklearn.preprocessing import minmax_scale
 from keras.layers.convolutional import Conv1D
 from keras.optimizers import Adam
-from keras.models import Sequential
+from keras.models import Sequential,load_model
 from keras.layers import Dense, Flatten
 from keras.utils import to_categorical
 from callbacks import all_callbacks
@@ -100,6 +100,7 @@ def print_hdf5_item_structure(g, offset='    ') :
 
 #path = "/home/ec2-user/ben_higgstagging/train/train_deep_simple_all/"
 path = "train_simple/"
+keras_model = load_model(path+'/KERAS_check_model_last.h5')
 h5File = h5py.File(path+'/KERAS_check_model_last_weights.h5')
 
 # Print h5 contents
@@ -136,11 +137,11 @@ x_train, y_train = get_data()
 
 
 ## Settings
-padding = 'same' #same or valid
-stride = 3
-filter_width = 2
-n_filters = 2
-n_channels = 2
+from keras_conv1d import my_padding as padding
+from keras_conv1d import my_strides as stride
+from keras_conv1d import my_filters as n_filters
+from keras_conv1d import my_kernel_size as filter_width
+from keras_conv1d import n_channels
 
 
 ### Get a sample
@@ -160,23 +161,25 @@ print_array_to_cpp("w_y",y_sample,".")
 ### Equations from tensorflow documentation
 
 # Valid
-in_width = x_sample.shape[0]
-out_width  = int(math.ceil(float(in_width - filter_width + 1) / float(stride)))
-pad_left = 0
-pad_right = 0
-
+if padding=='valid':
+    in_width = x_sample.shape[0]
+    out_width  = int(math.ceil(float(in_width - filter_width + 1) / float(stride)))
+    pad_along_width = 0
+    pad_left = 0
+    pad_right = 0
 # Same
-#in_width = x_sample.shape[0]
-#out_width  = int(math.ceil(float(in_width) / float(stride)))
-#if (in_width % stride == 0):
-#    pad_along_width = max(filter_width - stride, 0)
-#else:
-#    pad_along_width = max(filter_width - (in_width % stride), 0)
-#pad_left = pad_along_width // 2
-#pad_right = pad_along_width - pad_left
+elif padding=='same':
+    in_width = x_sample.shape[0]
+    out_width  = int(math.ceil(float(in_width) / float(stride)))
+    if (in_width % stride == 0):
+        pad_along_width = max(filter_width - stride, 0)
+    else:
+        pad_along_width = max(filter_width - (in_width % stride), 0)
+    pad_left = pad_along_width // 2
+    pad_right = pad_along_width - pad_left
 print "in_width: ",in_width
 print "out_width: ",out_width
-#print "pad_along_width: ",pad_along_width
+print "pad_along_width: ",pad_along_width
 print "pad_left: ",pad_left
 print "pad_right: ", pad_right
 x_sample = np.pad(x_sample, [(pad_left,pad_right),(0,0)], 'constant')
@@ -196,7 +199,7 @@ in_width = x_sample.shape[0]
 ## Convolve 
 ##############
 
-print "conv_k shape: ",conv_k.shape
+print "\nconv_k shape: ",conv_k.shape
 
 conv_out = np.zeros((out_width,n_filters))
 
@@ -217,10 +220,11 @@ for i in range(0,out_width):
                 print "filter shape: ",my_filter.shape
                 
             my_dot = np.dot(x_buffer,my_filter)
+            
             channel_sum += my_dot
         conv_out[i,f] = channel_sum + conv_b[f]
 
-print "conv_out: ",conv_out
+print "\nconv_out: ",conv_out
 print_array_to_cpp("w_conv_out",conv_out,".")
 
 #for j in range(0,conv_out.shape[1]):
@@ -229,26 +233,31 @@ print_array_to_cpp("w_conv_out",conv_out,".")
 #    print "\n"
 
 print "conv_out shape, pre-flatten: ",conv_out.shape
-print "conv_out, pre-flatten: ",conv_out
+print "\nconv_out, pre-flatten: ",conv_out
 conv_out = conv_out.flatten()
 print "conv_out shape: ",conv_out.shape
-print "conv_out: ",conv_out
+print "\nconv_out: ",conv_out
 
 
 #relu
 conv_out = conv_out * (conv_out > 0)
-print "conv_out, post relu: ",conv_out
+print "\nconv_out, post relu: ",conv_out
 
 ##########
 ## Dense
 ##########
 dnn_out = np.dot(conv_out, dense_k)+dense_b
 
-print "dnn_out: ",dnn_out
+print "\ndnn_out: ",dnn_out
 
 #softmax
 dnn_out = np.exp(dnn_out) / sum(np.exp(dnn_out))
-
-print "Final output: ",dnn_out
+keras_out = keras_model.predict(x_train[0:1,:,:])
+diff = np.subtract(dnn_out,keras_out)
+perc_diff = np.divide(diff,keras_out)
+print "\nFinal output: ",dnn_out
+print "\nKeras output: ",keras_out
+print "\nPercent diff: ",perc_diff
+print_array_to_cpp("w_dnn_out",dnn_out,".")
 
 

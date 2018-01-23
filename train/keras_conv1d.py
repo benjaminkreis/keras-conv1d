@@ -12,6 +12,12 @@ from keras.layers import Dense, Flatten
 from keras.utils import to_categorical
 from callbacks import all_callbacks
 
+my_filters = 8
+my_kernel_size = 3
+my_strides = 1
+my_padding = 'same'
+n_channels = 9
+
 def get_data():
     
     print "Preparing data..."
@@ -29,18 +35,25 @@ def get_data():
     n_channels = len(channel_files)
 
     X = np.zeros((len(y_train), 16, n_channels)) #empty array to fill
-
+    print X.shape
+    
     i_channel=0
     for my_channel in channel_files:
         my_channel_data = read_csv(x_path+"/"+my_channel, header=None, delim_whitespace=True)
-        X[:,:,i_channel]=my_channel_data.as_matrix()[:,0:16]
+        print my_channel_data.as_matrix().shape
+        X[:,:,i_channel]=my_channel_data.as_matrix()[:,::8]
         i_channel += 1
     x_train = X
 
     print "x shape: {}".format(x_train.shape)
     print "y shape: {}".format(y_train.shape)
     #print "n categories = ",y_train.shape[1]
+    
+    from sklearn.utils import shuffle
 
+    from sklearn.preprocessing import StandardScaler
+    #x_train = StandardScaler().fit_transform(x_train)
+    x_train, y_train = shuffle(x_train, y_train, random_state=123421412)
     return (x_train, y_train)
 
 
@@ -69,15 +82,21 @@ if __name__ == "__main__":
     seed(123421412)
     model = Sequential()
     
-    my_filters=2
-    my_kernel_size = 2
-    my_strides = 3
-    model.add(Conv1D(my_filters, my_kernel_size, input_shape = x_train.shape[1:3], padding='valid', strides = my_strides, activation = 'relu', kernel_initializer='glorot_uniform'))
+
+    model.add(Conv1D(my_filters, my_kernel_size, input_shape = x_train.shape[1:3], padding=my_padding, strides = my_strides, activation = 'relu', kernel_initializer='glorot_uniform'))
     model.add(Flatten())
     #model.add(Dense(32, activation = 'relu', kernel_initializer='lecun_uniform'))
     model.add(Dense(y_train.shape[1], activation = 'softmax', kernel_initializer='lecun_uniform'))
 
     print model.summary()
+    
+    outfile = open(options.outputDir + '/' + 'KERAS_model.json','wb')
+    jsonString = model.to_json()
+    import json
+    with outfile:
+        obj = json.loads(jsonString)
+        json.dump(obj, outfile, sort_keys=True,indent=4, separators=(',', ': '))
+        outfile.write('\n')
 
 
     ###########
@@ -95,7 +114,7 @@ if __name__ == "__main__":
                             lr_cooldown=2,
                             lr_minimum=0.0000001,
                             outputDir=options.outputDir)
-    model.fit(x_train, y_train, batch_size = 128, epochs = 50, validation_split = 0.25, verbose = 0, callbacks = callbacks.callbacks)
+    model.fit(x_train, y_train, batch_size = 128, epochs = 100, validation_split = 0.25, verbose = 0, callbacks = callbacks.callbacks)
 
 
     ###############
@@ -108,10 +127,9 @@ if __name__ == "__main__":
     print "Evaluate: ", model.evaluate(x_train, y_train, batch_size=128)
 
     # Predictions
-    for i in range(0,10):
-        print(y_train[i])
-        print(model.predict(x_train[i:i+1]))
-        print "\n"
+    print(y_train[0:100:10])
+    print(model.predict(x_train[0:100:10]))
+    print "\n"
     
 
     print(model.predict(x_train[0:1]))
