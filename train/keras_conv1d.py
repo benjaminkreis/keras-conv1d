@@ -12,11 +12,12 @@ from keras.layers import Dense, Flatten
 from keras.utils import to_categorical
 from callbacks import all_callbacks
 
-my_filters = 8
-my_kernel_size = 3
+my_filters = 3
+my_kernel_size = 2
 my_strides = 1
 my_padding = 'same'
-n_channels = 9
+n_channels = 6
+my_inputs = 4
 
 def get_data():
     
@@ -34,14 +35,14 @@ def get_data():
     channel_files = os.listdir(x_path)
     n_channels = len(channel_files)
 
-    X = np.zeros((len(y_train), 16, n_channels)) #empty array to fill
+    X = np.zeros((len(y_train), my_inputs, n_channels)) #empty array to fill
     print X.shape
     
     i_channel=0
     for my_channel in channel_files:
         my_channel_data = read_csv(x_path+"/"+my_channel, header=None, delim_whitespace=True)
         print my_channel_data.as_matrix().shape
-        X[:,:,i_channel]=my_channel_data.as_matrix()[:,::8]
+        X[:,:,i_channel]=my_channel_data.as_matrix()[:,::int(128/my_inputs)]
         i_channel += 1
     x_train = X
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
                             lr_cooldown=2,
                             lr_minimum=0.0000001,
                             outputDir=options.outputDir)
-    model.fit(x_train, y_train, batch_size = 128, epochs = 100, validation_split = 0.25, verbose = 0, callbacks = callbacks.callbacks)
+    model.fit(x_train, y_train, batch_size = 128, epochs = 200, validation_split = 0.25, verbose = 0, callbacks = callbacks.callbacks)
 
 
     ###############
