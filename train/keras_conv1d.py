@@ -19,6 +19,7 @@ my_padding = 'same'
 n_channels = 6
 my_inputs = 4
 
+
 def get_data():
     
     print "Preparing data..."
@@ -134,3 +135,25 @@ if __name__ == "__main__":
     
 
     print(model.predict(x_train[0:1]))
+
+
+    ################
+    ## Export
+    ################
+    model.to_json()
+
+
+    ###################
+    ## Print for HLS 
+    ###################
+    
+    print "Example: \n" 
+    print x_train[7,:,:]
+
+    nprint=1000
+    with file('in.dat', 'w') as outfile:
+        for i in range(0,nprint):
+            np.savetxt(outfile, x_train[i,:,:].reshape(1,x_train.shape[1]*x_train.shape[2])) 
+
+    np.savetxt('keras.dat', model.predict(x_train[0:nprint]))
+
