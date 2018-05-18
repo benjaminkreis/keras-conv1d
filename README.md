@@ -2,7 +2,7 @@
 
 ## Description
 
-Code for training and evaluating 1D convolutional neural network with Keras.  Use multiple channels and filters to explore conv1d options for [HLS4ML project](https://github.com/hls-fpga-machine-learning/keras-training).
+Code for training and evaluating 1D convolutional neural network with Keras.  Use multiple channels and filters to explore conv1d options for [HLS4ML project](https://github.com/hls-fpga-machine-learning/HLS4ML).
 
 The example is for the raw, inertial signals of [this dataset](https://archive.ics.uci.edu/ml/machine-learning-databases/00240/UCI%20HAR%20Dataset.zip).
 
